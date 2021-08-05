@@ -31,3 +31,5 @@ STAFF_EMAIL_TO = json.loads( os.environ['EZRQST_HAY__STAFFEMAIL_TO'] )  # list
 SIERRA_API_ROOT_URL = os.environ['EZRQST_HAY__SIERRA_API_ROOT_URL']
 SIERRA_API_KEY = os.environ['EZRQST_HAY__SIERRA_API_KEY']
 SIERRA_API_SECRET = os.environ['EZRQST_HAY__SIERRA_API_SECRET']
+
+ALMA_IS_LIVE = json.loads( os.environ['EZRQST_HAY__ALMA_IS_LIVE_JSON'] )  # False before go-live; True afterwards
