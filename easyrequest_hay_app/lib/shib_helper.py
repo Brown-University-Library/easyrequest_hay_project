@@ -65,6 +65,7 @@ class ShibViewHelper( object ):
         shib_checker = ShibChecker()
         shib_dct = shib_checker.grab_shib_info( request )
         validity = shib_checker.evaluate_shib_info( shib_dct, request )
+        assert type( validity ) == bool
         log.debug( 'returning shib validity `%s`' % validity )
         return ( validity, shib_dct )
 
@@ -77,16 +78,6 @@ class ShibViewHelper( object ):
         log.debug( 'ShibViewHelper redirect_url, `%s`' % redirect_url )
         resp = HttpResponseRedirect( redirect_url )
         return resp
-
-    # def prep_login_redirect( self, request ):
-    #     """ Prepares redirect response-object to views.problem() on bad authZ (p-type problem).
-    #         Called by views.shib_login_handler() """
-    #     request.session['shib_login_error'] = 'Problem on authorization.'
-    #     request.session['shib_authorized'] = False
-    #     redirect_url = '%s?shortlink=%s' % ( reverse('problem_url'), request.GET['shortlink'] )
-    #     log.debug( 'ShibViewHelper redirect_url, `%s`' % redirect_url )
-    #     resp = HttpResponseRedirect( redirect_url )
-    #     return resp
 
     def build_processor_response( self, shortlink, shib_dct ):
         """ Saves user info & redirects to behind-the-scenes processor page.
@@ -101,22 +92,12 @@ class ShibViewHelper( object ):
             log.debug( f'shib_dct now, ```{shib_dct}```' )
         item_request.patron_info = json.dumps( shib_dct, sort_keys=True, indent=2 )
         item_request.save()
-        redirect_url = '%s?shortlink=%s' % ( reverse('processor_url'), shortlink )
+        if settings_app.ALMA_IS_LIVE == True:
+            redirect_url = '%s?shortlink=%s' % ( reverse('alma_processor_url'), shortlink )
+        else:
+            redirect_url = '%s?shortlink=%s' % ( reverse('processor_url'), shortlink )
         log.debug( 'leaving ShibViewHelper; redirect_url `%s`' % redirect_url )
         return HttpResponseRedirect( redirect_url )
-
-    # def build_processor_response( self, shortlink, shib_dct ):
-    #     """ Saves user info & redirects to behind-the-scenes processor page.
-    #         Called by views.shib_login_handler() """
-    #     log.debug( 'starting build_response()' )
-    #     log.debug( 'shortlink, `%s`' % shortlink )
-    #     log.debug( 'shib_dct, ```%s```' % shib_dct )
-    #     item_request = ItemRequest.objects.get( short_url_segment=shortlink )
-    #     item_request.patron_info = json.dumps( shib_dct, sort_keys=True, indent=2 )
-    #     item_request.save()
-    #     redirect_url = '%s?shortlink=%s' % ( reverse('processor_url'), shortlink )
-    #     log.debug( 'leaving ShibViewHelper; redirect_url `%s`' % redirect_url )
-    #     return HttpResponseRedirect( redirect_url )
 
     ## end class ShibViewHelper
 
@@ -169,8 +150,11 @@ class ShibChecker( object ):
         validity = False
         if self.all_values_present(shib_dct):
             if self.brown_user_confirmed(shib_dct):
-                if self.authorized( shib_dct['patron_barcode'], request ):
-                    validity = True
+                if settings_app.ALMA_IS_LIVE == True:
+                    validity = True  # alma's built-in rules provide the auth-check
+                else:
+                    if self.authorized( shib_dct['patron_barcode'], request ):
+                        validity = True
         log.debug( 'validity, `%s`' % validity )
         return validity
 
