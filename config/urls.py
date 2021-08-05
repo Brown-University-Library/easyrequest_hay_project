@@ -28,6 +28,7 @@ urlpatterns = [
     url( r'^shib_login_handler/$', views.shib_login_handler, name='shib_login_handler_url' ),
 
     url( r'^processor/$', views.processor, name='processor_url' ),
+    url( r'^alma_processor/$', views.alma_processor, name='alma_processor_url' ),
 
     url( r'^stats_api/$', views.stats, name='stats_url' ),
 

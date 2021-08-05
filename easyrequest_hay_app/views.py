@@ -91,7 +91,8 @@ def shib_login_handler( request ):
         Redirects user to behind-the-scenes processor() view. """
     log.debug( '\n\nstarting shib_login_handler(); request.__dict__, ```%s```' % request.__dict__ )
     ( validity, shib_dict ) = shib_view_helper.check_shib_headers( request )
-    if validity is False:  # TODO: implement this
+    assert type( validity ) == bool
+    if validity is False:
         resp = shib_view_helper.prep_login_redirect( request )
     else:
         resp = shib_view_helper.build_processor_response( request.GET['shortlink'], shib_dict )
@@ -123,24 +124,36 @@ def processor( request ):
     return HttpResponseRedirect( aeon_url )
 
 
-# def processor( request ):
-#     """ Behind-the-scenes url which handles item request...
-#         - Gets item-id.
-#         - Attempts to place hold in Sierra.
-#         - Redirects user to Aeon.
-#         Triggered after a successful shib_login (along with patron-api lookup) """
-#     log.debug( 'starting processor(); request.__dict__, ```%s```' % request.__dict__ )
-#     mill_hlpr = Millennium()
-#     aeon_url_bldr = AeonUrlBuilder()
-#     shortlink = request.GET['shortlink']
-#     log.debug( 'shortlink, `%s`' % shortlink )
-#     mill_hlpr.prep_item_data( shortlink )
-#     if mill_hlpr.item_id:  # if we couldn't get an item-id, we can't place a hold
-#         mill_hlpr.call_place_hold()
-#     emailer.run_send_check( mill_hlpr.item_id, mill_hlpr.hold_status, shortlink )
-#     aeon_url_bldr.make_millennium_note( mill_hlpr.item_id, mill_hlpr.item_barcode, mill_hlpr.patron_barcode, mill_hlpr.hold_status )
-#     aeon_url = aeon_url_bldr.build_aeon_url( shortlink )
-#     return HttpResponseRedirect( aeon_url )
+def alma_processor( request ):
+    """ Behind-the-scenes url which handles item request...
+        - Uses barcode to get alma item_id via alma-api.
+        - Attempts to place hold for patron in Alma.
+        - Redirects user to Aeon.
+        Triggered after a successful shib_login (along with patron-api lookup) """
+    log.debug( f'\n\nstarting processor(); request.__dict__, ```{request.__dict__}```' )
+    alma_helper = AlmaHelper()
+    aeon_url_bldr = AeonUrlBuilder()
+    shortlink = request.GET['shortlink']
+    log.debug( 'shortlink, `%s`' % shortlink )
+    ## -- load data -----------------------------
+    err = alma_helper.load_db_data( shortlink )             # performs db lookup and contains instantiated orm object
+    if err:
+        request.session['shib_login_error'] = 'Problem preparing data. Please try again in a few minutes.'  # issue logged; admin notified
+        request.session['shib_authorized'] = False
+        return HttpResponseRedirect( reverse('problem_url') )
+    ## -- try alma-api --------------------------
+    err = alma_helper.prepare_hold_url()                    # calls alma-api with barcode to get mms_id, holdings_id, and item_id -- and stores these
+    if err:
+        alma_helper.email_staff_re_problem()                # prepares data and calls mail.py function
+    else:
+        ( result, err ) = alma_helper.manage_place_hold()
+        if result == 'success':
+            aeon_url_bldr.make_alma_info_note_for_aeon()    # stores request-info for subsequent aeon redirect
+        else:
+            alma_helper.email_staff_re_problem()
+    ## -- redirect user to aeon -----------------
+    aeon_url = aeon_url_bldr.build_aeon_url( alma_helper.item_dct )
+    return HttpResponseRedirect( aeon_url )
 
 
 def problem( request ):
