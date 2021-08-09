@@ -1,5 +1,7 @@
 import json, logging, pprint
 
+from easyrequest_hay_app.models import ItemRequest
+
 
 log = logging.getLogger(__name__)
 
@@ -14,8 +16,8 @@ class AlmaHelper():
         try:
             assert type(shortlink) == str
             item_obj = ItemRequest.objects.get( short_url_segment=shortlink )
-            item_dct = item_dct = json.loads( self.item_request.full_url_params )
-            patron_dct = json.loads( self.item_request.patron_info )
+            item_dct = item_dct = json.loads( item_obj.full_url_params )
+            patron_dct = json.loads( item_obj.patron_info )
             data_dct = { 'item_dct': item_dct, 'patron_dct': patron_dct }
         except Exception as e:
             err = repr(e)
@@ -23,6 +25,10 @@ class AlmaHelper():
         log.debug( f'data_dct, ``{pprint.pformat(data_dct)}``' )
         log.debug( f'err, ``{err}``' )
         return( data_dct, err )
+
+    def prepare_hold_url( self, data_dct ):
+        ( hold_url, err ) = ( '', None )
+        return ( hold_url, err )
 
     # def prep_item_data( self, shortlink ):
     #     """ Preps item-data -- and some patron-data -- from item_request.

@@ -138,13 +138,14 @@ def alma_processor( request ):
     shortlink = request.GET['shortlink']
     log.debug( 'shortlink, `%s`' % shortlink )
     ## -- load data -----------------------------
-    err = alma_helper.load_db_data( shortlink )             # performs db lookup and contains instantiated orm object
+    ( data_dct, err ) = alma_helper.load_db_data( shortlink )             # performs db lookup and contains instantiated orm object
     if err:
+        log.debug( f'here; err, `{err}``' )
         request.session['problem'] = 'Problem preparing data. Please try again in a few minutes.'  # issue logged; admin notified
         request.session['shib_authorized'] = False
         return HttpResponseRedirect( reverse('problem_url') )
     ## -- try alma-api --------------------------
-    err = alma_helper.prepare_hold_url()                    # calls alma-api with barcode to get mms_id, holdings_id, and item_id -- and stores these
+    err = alma_helper.prepare_hold_url( data_dct )                    # calls alma-api with barcode to get mms_id, holdings_id, and item_id -- and stores these
     if err:
         alma_helper.email_staff_re_problem()                # prepares data and calls mail.py function
     else:
