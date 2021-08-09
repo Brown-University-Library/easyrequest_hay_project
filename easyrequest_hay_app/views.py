@@ -3,6 +3,7 @@ import datetime, json, logging, os, pprint, time
 from . import settings_app
 from django.conf import settings as project_settings
 from django.contrib.auth import logout
+from django.core.mail import mail_admins
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, HttpResponseNotFound
 from django.shortcuts import get_object_or_404, render
@@ -15,6 +16,7 @@ from easyrequest_hay_app.lib.millennium import Millennium
 from easyrequest_hay_app.lib.session import SessionHelper
 from easyrequest_hay_app.lib.shib_helper import ShibViewHelper
 from easyrequest_hay_app.lib.sierra import SierraHelper
+from easyrequest_hay_app.lib.alma import AlmaHelper
 from easyrequest_hay_app.lib.stats import StatsBuilder
 from easyrequest_hay_app.lib.validator import Validator
 from easyrequest_hay_app.models import ItemRequest
@@ -130,7 +132,7 @@ def alma_processor( request ):
         - Attempts to place hold for patron in Alma.
         - Redirects user to Aeon.
         Triggered after a successful shib_login (along with patron-api lookup) """
-    log.debug( f'\n\nstarting processor(); request.__dict__, ```{request.__dict__}```' )
+    log.debug( f'\n\nstarting alma_processor(); request.__dict__, ```{request.__dict__}```' )
     alma_helper = AlmaHelper()
     aeon_url_bldr = AeonUrlBuilder()
     shortlink = request.GET['shortlink']
@@ -138,7 +140,7 @@ def alma_processor( request ):
     ## -- load data -----------------------------
     err = alma_helper.load_db_data( shortlink )             # performs db lookup and contains instantiated orm object
     if err:
-        request.session['shib_login_error'] = 'Problem preparing data. Please try again in a few minutes.'  # issue logged; admin notified
+        request.session['problem'] = 'Problem preparing data. Please try again in a few minutes.'  # issue logged; admin notified
         request.session['shib_authorized'] = False
         return HttpResponseRedirect( reverse('problem_url') )
     ## -- try alma-api --------------------------
@@ -161,7 +163,15 @@ def problem( request ):
         Could be used by a variety of failure situations.
         Currently used by failure of shib-authentication. """
     log.debug( f'\n\nstarting problem(); ; request.__dict__, ```{request.__dict__}```' )
-    resp = render( request, 'easyrequest_hay_app_templates/problem.html', {} )
+    context = { 'email_help': settings_app.HELP_EMAIL }
+    problem = request.session.get( 'problem', None )
+    if problem:
+        context['problem'] = request.session['problem']
+        request.session['problem'] = None
+        email_subject = 'for admin -- easyRequest-Hay problem'
+        email_message = f'Problem, ``{problem}``; see logs for more info.'
+        mail_admins( email_subject, email_message )
+    resp = render( request, 'easyrequest_hay_app_templates/problem.html', context )
     return resp
 
 
