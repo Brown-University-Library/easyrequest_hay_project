@@ -128,10 +128,10 @@ def processor( request ):
 
 def alma_processor( request ):
     """ Behind-the-scenes url which handles item request...
-        - Uses barcode to get alma item_id via alma-api.
+        - Uses barcode alma-api to get data needed for the hold.
         - Attempts to place hold for patron in Alma.
         - Redirects user to Aeon.
-        Triggered after a successful shib_login (along with patron-api lookup) """
+        Triggered after a successful shib_login. """
     log.debug( f'\n\nstarting alma_processor(); request.__dict__, ```{request.__dict__}```' )
     alma_helper = AlmaHelper()
     aeon_url_bldr = AeonUrlBuilder()
@@ -156,7 +156,7 @@ def alma_processor( request ):
         ( request_id, err ) = alma_helper.manage_place_hold( hold_url )
         aeon_url_bldr.make_alma_note( item_barcode, patron_barcode, request_id )  # makes note based on whether request_id is None or has the hold-id.
         if err:
-            ( patron_json_subset, err2 ) = alma_helper.prep_email_patron_json( data_dct['patron_dct'] )
+            ( patron_json_subset, err2 ) = alma_helper.prep_email_patron_json( data_dct['patron_dct'] )  # TODO: refactor this duplication -- emailer could get the data-subset
             if patron_json_subset:
                 emailer.email_staff( patron_json_subset, json.dumps(data_dct['item_dct'], sort_keys=True, indent=2) )
     ## -- redirect user to aeon -----------------
