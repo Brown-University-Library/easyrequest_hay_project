@@ -3,7 +3,7 @@ import datetime, json, logging, os, pprint, time
 from . import settings_app
 from django.conf import settings as project_settings
 from django.contrib.auth import logout
-from django.core.mail import mail_admins
+# from django.core.mail import mail_admins
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect, HttpResponseNotFound
 from django.shortcuts import get_object_or_404, render
@@ -145,17 +145,22 @@ def alma_processor( request ):
         request.session['shib_authorized'] = False
         return HttpResponseRedirect( reverse('problem_url') )
     ## -- try alma-api --------------------------
-    ( hold_url, err ) = alma_helper.prepare_hold_url( data_dct['item_dct']['item_barcode'] )                    # calls alma-api with barcode to get mms_id, holdings_id, and item_id -- and stores these
+    item_barcode = data_dct['item_dct']['item_barcode']
+    patron_barcode = data_dct['patron_dct']['patron_barcode']
+    ( hold_url, err ) = alma_helper.prepare_hold_url( item_barcode, patron_barcode )
     if err:
-        alma_helper.email_staff_re_problem()                # prepares data and calls mail.py function
+        ( patron_json_subset, err2 ) = alma_helper.prep_email_patron_json( data_dct['patron_dct'] )
+        if patron_json_subset:
+            emailer.email_staff( patron_json_subset, json.dumps(data_dct['item_dct'], sort_keys=True, indent=2) )
     else:
-        ( result, err ) = alma_helper.manage_place_hold()
-        if result == 'success':
-            aeon_url_bldr.make_alma_info_note_for_aeon()    # stores request-info for subsequent aeon redirect
-        else:
-            alma_helper.email_staff_re_problem()
+        ( request_id, err ) = alma_helper.manage_place_hold( hold_url )
+        aeon_url_bldr.make_alma_note( item_barcode, patron_barcode, request_id )  # makes note based on whether request_id is None or has the hold-id.
+        if err:
+            ( patron_json_subset, err2 ) = alma_helper.prep_email_patron_json( data_dct['patron_dct'] )
+            if patron_json_subset:
+                emailer.email_staff( patron_json_subset, json.dumps(data_dct['item_dct'], sort_keys=True, indent=2) )
     ## -- redirect user to aeon -----------------
-    aeon_url = aeon_url_bldr.build_aeon_url( alma_helper.item_dct )
+    aeon_url = aeon_url_bldr.build_aeon_url( data_dct['item_dct'] )  # incorporates stored object-note from above
     return HttpResponseRedirect( aeon_url )
 
 

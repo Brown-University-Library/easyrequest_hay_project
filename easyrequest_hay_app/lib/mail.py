@@ -18,39 +18,10 @@ class Emailer:
     def __init__( self ):
         self.email_subject = 'easyrequest_hay auto-annex-request unsuccessful'
 
-    # def run_send_check( self, millennium_item_id, millennium_hold_status, shortlink ):
-    #     """ Checks to see if problem-email to staff needs to be sent, and sends it.
-    #         Called by views.processor() """
-    #     if millennium_item_id and millennium_hold_status:  ## happy path
-    #         log.debug( 'no need to send staff email' )
-    #         return
-    #     else:
-    #         itmrqst = ItemRequest.objects.get( short_url_segment=shortlink )
-    #         item_json = itmrqst.full_url_params  # json
-    #         patron_json = self.extract_basic_patron_info( json.loads(itmrqst.patron_info) )
-    #         self.email_staff( patron_json, item_json )
-    #         log.debug( 'email attempt complete' )
-    #     return
-
-    # def extract_basic_patron_info( self, patron_dct ):
-    #     """ Returns subset of captured patron data.
-    #         Called by run_send_check() """
-    #     sub_dct = {
-    #         'HTTP_SHIBBOLETH_BROWNTYPE': patron_dct['HTTP_SHIBBOLETH_BROWNTYPE'],
-    #         'HTTP_SHIBBOLETH_DEPARTMENT': patron_dct['HTTP_SHIBBOLETH_DEPARTMENT'],
-    #         'email': patron_dct['email'],
-    #         'eppn': patron_dct['eppn'],
-    #         'firstname': patron_dct['firstname'],
-    #         'lastname': patron_dct['lastname'],
-    #         'patron_barcode': patron_dct['patron_barcode']
-    #         }
-    #     patron_json = json.dumps( sub_dct, sort_keys=True, indent=2 )
-    #     log.debug( f'patron_json, ```{patron_json}```' )
-    #     return patron_json
-
     def email_staff( self, patron_json, item_json ):
         """ Emails staff problem alert.
             Called by run_send_check() """
+        err = None
         try:
             body = self.build_email_body( patron_json, item_json )
             # log.debug( f'body, ```{body}```' )
@@ -61,8 +32,26 @@ class Emailer:
             email.send()
             log.debug( 'mail sent' )
         except Exception as e:
-            log.exception( 'exception sending email; traceback follows, but processing continues' )
-        return
+            err = repr(e)
+            log.exception( 'problem sending staff-email' )
+        log.debug( f'err, ``{err}``' )
+        return err
+
+    # def email_staff( self, patron_json, item_json ):
+    #     """ Emails staff problem alert.
+    #         Called by run_send_check() """
+    #     try:
+    #         body = self.build_email_body( patron_json, item_json )
+    #         # log.debug( f'body, ```{body}```' )
+    #         ffrom = settings_app.STAFF_EMAIL_FROM  # `from` reserved
+    #         to = settings_app.STAFF_EMAIL_TO  # list
+    #         extra_headers = { 'Reply-To': settings_app.STAFF_EMAIL_REPLYTO }
+    #         email = EmailMessage( self.email_subject, body, ffrom, to, headers=extra_headers )
+    #         email.send()
+    #         log.debug( 'mail sent' )
+    #     except Exception as e:
+    #         log.exception( 'exception sending email; traceback follows, but processing continues' )
+    #     return
 
     def build_email_body( self, patron_json, item_json ):
         """ Prepares and returns email body.
