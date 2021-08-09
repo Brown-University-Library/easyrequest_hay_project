@@ -19,6 +19,7 @@ class AlmaHelper():
             item_dct = item_dct = json.loads( item_obj.full_url_params )
             patron_dct = json.loads( item_obj.patron_info )
             data_dct = { 'item_dct': item_dct, 'patron_dct': patron_dct }
+            assert len( data_dct['item_dct']['item_barcode'] ) > 10  # usually 14
         except Exception as e:
             err = repr(e)
             log.exception( 'problem loading db data' )
@@ -26,8 +27,15 @@ class AlmaHelper():
         log.debug( f'err, ``{err}``' )
         return( data_dct, err )
 
-    def prepare_hold_url( self, data_dct ):
+    def prepare_hold_url( self, barcode ):
         ( hold_url, err ) = ( '', None )
+        try:
+            pass
+        except Exception as e:
+            err = repr(e)
+            log.exception( 'problem preparing hold-url' )
+        log.debug( f'hold_url, ``hold_url``' )
+        log.debug( f'err, ``{err}``' )
         return ( hold_url, err )
 
     # def prep_item_data( self, shortlink ):

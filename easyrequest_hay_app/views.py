@@ -145,7 +145,7 @@ def alma_processor( request ):
         request.session['shib_authorized'] = False
         return HttpResponseRedirect( reverse('problem_url') )
     ## -- try alma-api --------------------------
-    err = alma_helper.prepare_hold_url( data_dct )                    # calls alma-api with barcode to get mms_id, holdings_id, and item_id -- and stores these
+    ( hold_url, err ) = alma_helper.prepare_hold_url( data_dct['item_dct']['item_barcode'] )                    # calls alma-api with barcode to get mms_id, holdings_id, and item_id -- and stores these
     if err:
         alma_helper.email_staff_re_problem()                # prepares data and calls mail.py function
     else:
