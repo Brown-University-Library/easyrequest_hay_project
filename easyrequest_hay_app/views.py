@@ -155,7 +155,7 @@ def alma_processor( request ):
     else:
         ( request_id, err ) = alma_helper.manage_place_hold( hold_url )
         aeon_url_bldr.make_alma_note( item_barcode, patron_barcode, request_id )  # makes note based on whether request_id is None or has the hold-id.
-        if err:
+        if err or request_id == '':
             ( patron_json_subset, err2 ) = alma_helper.prep_email_patron_json( data_dct['patron_dct'] )  # TODO: refactor this duplication -- emailer could get the data-subset
             if patron_json_subset:
                 emailer.email_staff( patron_json_subset, json.dumps(data_dct['item_dct'], sort_keys=True, indent=2) )
