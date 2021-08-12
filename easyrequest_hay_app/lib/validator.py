@@ -24,7 +24,7 @@ class Validator( object ):
         """ Ensures app is accessed from legit source.
             Called by views.confirm() """
         return_val = False
-        if '127.0.0.1' in request.get_host() and project_settings.DEBUG == True:
+        if project_settings.DEBUG == True:
             return_val = True
         referrer_host = self.get_referrer_host( request.META.get('HTTP_REFERER', 'unavailable') )
         if referrer_host in self.LEGIT_SOURCES:
@@ -33,6 +33,20 @@ class Validator( object ):
             log.debug( 'referrer_host, `%s`' % referrer_host )
         log.debug( 'return_val, `%s`' % return_val )
         return return_val
+
+    # def validate_source( self, request ):
+    #     """ Ensures app is accessed from legit source.
+    #         Called by views.confirm() """
+    #     return_val = False
+    #     if '127.0.0.1' in request.get_host() and project_settings.DEBUG == True:
+    #         return_val = True
+    #     referrer_host = self.get_referrer_host( request.META.get('HTTP_REFERER', 'unavailable') )
+    #     if referrer_host in self.LEGIT_SOURCES:
+    #         return_val = True
+    #     else:
+    #         log.debug( 'referrer_host, `%s`' % referrer_host )
+    #     log.debug( 'return_val, `%s`' % return_val )
+    #     return return_val
 
     def get_referrer_host( self, referrer_url ):
         """ Extracts host from referrer_url.
