@@ -37,22 +37,6 @@ class Emailer:
         log.debug( f'err, ``{err}``' )
         return err
 
-    # def email_staff( self, patron_json, item_json ):
-    #     """ Emails staff problem alert.
-    #         Called by run_send_check() """
-    #     try:
-    #         body = self.build_email_body( patron_json, item_json )
-    #         # log.debug( f'body, ```{body}```' )
-    #         ffrom = settings_app.STAFF_EMAIL_FROM  # `from` reserved
-    #         to = settings_app.STAFF_EMAIL_TO  # list
-    #         extra_headers = { 'Reply-To': settings_app.STAFF_EMAIL_REPLYTO }
-    #         email = EmailMessage( self.email_subject, body, ffrom, to, headers=extra_headers )
-    #         email.send()
-    #         log.debug( 'mail sent' )
-    #     except Exception as e:
-    #         log.exception( 'exception sending email; traceback follows, but processing continues' )
-    #     return
-
     def build_email_body( self, patron_json, item_json ):
         """ Prepares and returns email body.
             Called by email_staff().
