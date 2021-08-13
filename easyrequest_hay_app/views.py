@@ -153,6 +153,7 @@ def alma_processor( request ):
         ( patron_json_subset, err2 ) = alma_helper.prep_email_patron_json( data_dct['patron_dct'] )
         if patron_json_subset and alma.send_email_check( item_title, item_barcode, patron_barcode ):
             emailer.email_staff( patron_json_subset, json.dumps(data_dct['item_dct'], sort_keys=True, indent=2) )
+            alma_helper.add_note( shortlink, 'email_sent' )
     else:
         ( request_id, err ) = alma_helper.manage_place_hold( hold_url )
         aeon_url_bldr.make_alma_note( item_barcode, patron_barcode, request_id )  # makes note based on whether request_id is None or has the hold-id.
@@ -160,6 +161,7 @@ def alma_processor( request ):
             ( patron_json_subset, err2 ) = alma_helper.prep_email_patron_json( data_dct['patron_dct'] )  # TODO: refactor this duplication -- emailer could get the data-subset
             if patron_json_subset and alma_helper.send_email_check( item_title, item_barcode, patron_barcode ):
                 emailer.email_staff( patron_json_subset, json.dumps(data_dct['item_dct'], sort_keys=True, indent=2) )
+                alma_helper.add_note( shortlink, 'email_sent' )
     ## -- redirect user to aeon -----------------
     aeon_url = aeon_url_bldr.build_aeon_url( data_dct['item_dct'] )  # incorporates stored object-note from above
     return HttpResponseRedirect( aeon_url )

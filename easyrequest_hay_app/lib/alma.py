@@ -116,7 +116,6 @@ class AlmaHelper():
         except:
             log.exception( 'Unable to send admin email; traceback follows; processing continues' )
 
-
     def send_email_check( self, item_title, item_barcode, patron_barcode ):
         """ Evaluates whether an email -- TO HAY STAFF -- needs to be sent.
             Called by views.alma_processor() """
@@ -125,8 +124,10 @@ class AlmaHelper():
         log.debug( f'checking for duplicate against item_barcode, ```{item_barcode}``` and patron_barcode, ```{patron_barcode}```' )
         now_time = datetime.datetime.now()
         half_hour_ago = now_time - datetime.timedelta( minutes=30 )
+        log.debug( f'half_hour_ago, ``{half_hour_ago}``' )
         ## query all requests for past half-hour where past-request.item-id == current-item.item-id
         possible_duplicates = ItemRequest.objects.filter( item_title=item_title, create_datetime__gte=half_hour_ago )  # add `, patron_info__isnull=False`? I don't think so, because this path assumes shib, so there should always be patron info
+        log.debug( f'possible_duplicates, ``{possible_duplicates}``' )
         ## loop through them
         recent_email_sent = False
         for poss_dup in possible_duplicates:
@@ -143,12 +144,64 @@ class AlmaHelper():
                 if poss_dup_item_dct.get('item_barcode', None) == item_barcode:
                     if poss_dup_patron_dct.get('patron_barcode', None) == patron_barcode:
                         ## ok poss_dup _is_ a duplicate
-                        recent_email_sent = True
-                        log.info( 'not sending staff-email re unable-to-request-via-alma; already sent.' )
-                        break
+                        log.debug( 'duplicate found' )
+                        if poss_dup.admin_notes:
+                            if 'email_sent' in poss_dup.admin_notes.lower():
+                                recent_email_sent = True
+                                # updated_notes = 'Not sending staff-email re unable-to-request-via-alma; already sent.' + '\n\n' + current_notes
+                                # self.item_request.admin_notes = updated_notes.strip()
+                                # self.item_request.save()
+                                log.info( 'not sending staff-email re unable-to-request-via-alma; already sent.' )
+                                break
         log.debug( f'recent_email_sent, ```{recent_email_sent}```' )
         if recent_email_sent is False:
             return_check = True
             log.info( 'will send staff-email re unable-to-request-via-alma.' )
         log.debug( f'return_check, `{return_check}`' )
         return return_check
+
+    def add_note( self, shortlink, note ):
+        """ Adds note to item. """
+        item_obj = ItemRequest.objects.get( short_url_segment=shortlink )
+        item_obj.admin_notes = note
+        item_obj.save()
+        return
+
+
+    # def send_email_check( self, item_title, item_barcode, patron_barcode ):
+    #     """ Evaluates whether an email -- TO HAY STAFF -- needs to be sent.
+    #         Called by views.alma_processor() """
+    #     log.debug( 'starting send_email_check()' )
+    #     return_check = False
+    #     log.debug( f'checking for duplicate against item_barcode, ```{item_barcode}``` and patron_barcode, ```{patron_barcode}```' )
+    #     now_time = datetime.datetime.now()
+    #     half_hour_ago = now_time - datetime.timedelta( minutes=30 )
+    #     log.debug( f'half_hour_ago, ``{half_hour_ago}``' )
+    #     ## query all requests for past half-hour where past-request.item-id == current-item.item-id
+    #     possible_duplicates = ItemRequest.objects.filter( item_title=item_title, create_datetime__gte=half_hour_ago )  # add `, patron_info__isnull=False`? I don't think so, because this path assumes shib, so there should always be patron info
+    #     log.debug( f'possible_duplicates, ``{possible_duplicates}``' )
+    #     ## loop through them
+    #     recent_email_sent = False
+    #     for poss_dup in possible_duplicates:
+    #         poss_dup_item_dct = json.loads( poss_dup.full_url_params )
+
+    #         poss_dup_patron_dct = None
+    #         try:
+    #             poss_dup_patron_dct = json.loads( poss_dup.patron_info )
+    #         except:
+    #             log.exception( 'problem getting expected patron-dct; processing continues' )
+
+    #         if poss_dup_patron_dct:
+
+    #             if poss_dup_item_dct.get('item_barcode', None) == item_barcode:
+    #                 if poss_dup_patron_dct.get('patron_barcode', None) == patron_barcode:
+    #                     ## ok poss_dup _is_ a duplicate
+    #                     recent_email_sent = True
+    #                     log.info( 'not sending staff-email re unable-to-request-via-alma; already sent.' )
+    #                     break
+    #     log.debug( f'recent_email_sent, ```{recent_email_sent}```' )
+    #     if recent_email_sent is False:
+    #         return_check = True
+    #         log.info( 'will send staff-email re unable-to-request-via-alma.' )
+    #     log.debug( f'return_check, `{return_check}`' )
+    #     return return_check
