@@ -33,7 +33,11 @@ class ConfirmHelper( object ):
         dct = json.loads( jsonified_querydct )
         log.debug( 'dct, ```%s```' % pprint.pformat(dct) )
         itmrqst = ItemRequest()
-        itmrqst.item_title = dct['item_title']
+        # itmrqst.item_title = dct['item_title']
+        tmp_title = dct['item_title']
+        if len(tmp_title) > 190:
+            tmp_title = f'{tmp_title[0:190]}...'
+        itmrqst.item_title = tmp_title
         itmrqst.full_url_params = jsonified_querydct
         itmrqst.short_url_segment = self.epoch_micro_to_str()
         itmrqst.status = 'initial_landing'
